@@ -164,10 +164,10 @@
             font-family: 'Consolas', 'Courier New', monospace;
             background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 215, 0, 0.2);
             border-radius: 12px; color: #ffd700; text-align: center;
-            outline: none; transition: border-color 0.3s; letter-spacing: 2px;
+            letter-spacing: 2px; min-height: 56px;
+            display: flex; align-items: center; justify-content: center;
         }
-        .expression-display:focus { border-color: rgba(255, 215, 0, 0.5); }
-        .expression-display::placeholder { color: rgba(255, 215, 0, 0.25); letter-spacing: 1px; }
+        .expression-display.empty { color: rgba(255, 215, 0, 0.25); }
 
         /* 操作按钮区 */
         .operators-area {
@@ -338,7 +338,7 @@
 
         <!-- 表达式输入 -->
         <div class="expression-area">
-            <input type="text" class="expression-display" id="expression" placeholder="点击卡牌和运算符输入" readonly>
+            <div class="expression-display empty" id="expression">点击卡牌和运算符输入</div>
         </div>
 
         <!-- 运算符按钮 -->
@@ -624,10 +624,16 @@
             });
         }
 
+        function getExpr() { const t = document.getElementById('expression').textContent; return t === '点击卡牌和运算符输入' ? '' : t; }
+        function setExpr(val) {
+            const el = document.getElementById('expression');
+            if (val) { el.textContent = val; el.classList.remove('empty'); }
+            else { el.textContent = '点击卡牌和运算符输入'; el.classList.add('empty'); }
+        }
+
         function onCardClick(index) {
             if (!gameActive) return;
-            const expr = document.getElementById('expression');
-            expr.value += currentNums[index];
+            setExpr(getExpr() + currentNums[index]);
             const card = document.querySelectorAll('.card')[index];
             card.classList.add('selected');
             setTimeout(() => card.classList.remove('selected'), 200);
@@ -635,20 +641,19 @@
 
         function appendOp(op) {
             if (!gameActive) return;
-            const expr = document.getElementById('expression');
-            expr.value += op;
+            setExpr(getExpr() + op);
         }
 
         function backspace() {
-            const expr = document.getElementById('expression');
-            expr.value = expr.value.slice(0, -1);
+            const cur = getExpr();
+            setExpr(cur.slice(0, -1));
         }
 
-        function clearExpr() { document.getElementById('expression').value = ''; }
+        function clearExpr() { setExpr(''); }
 
         function submitAnswer() {
             if (!gameActive) return;
-            const expr = document.getElementById('expression').value.trim();
+            const expr = getExpr().trim();
             if (!expr) { setMessage('error', '请先输入表达式'); return; }
             const result = validateExpression(expr, currentNums);
             if (result.success) {
