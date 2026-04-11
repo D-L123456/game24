@@ -338,8 +338,7 @@
 
         <!-- 表达式输入 -->
         <div class="expression-area">
-            <input type="text" class="expression-display" id="expression" placeholder="输入表达式..."
-                   onkeydown="if(event.key==='Enter') submitAnswer()">
+            <input type="text" class="expression-display" id="expression" placeholder="点击卡牌和运算符输入" readonly>
         </div>
 
         <!-- 运算符按钮 -->
@@ -629,7 +628,6 @@
             if (!gameActive) return;
             const expr = document.getElementById('expression');
             expr.value += currentNums[index];
-            expr.focus();
             const card = document.querySelectorAll('.card')[index];
             card.classList.add('selected');
             setTimeout(() => card.classList.remove('selected'), 200);
@@ -638,12 +636,12 @@
         function appendOp(op) {
             if (!gameActive) return;
             const expr = document.getElementById('expression');
-            expr.value += op; expr.focus();
+            expr.value += op;
         }
 
         function backspace() {
             const expr = document.getElementById('expression');
-            expr.value = expr.value.slice(0, -1); expr.focus();
+            expr.value = expr.value.slice(0, -1);
         }
 
         function clearExpr() { document.getElementById('expression').value = ''; }
