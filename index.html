@@ -539,6 +539,7 @@
             timeRemaining = seconds;
             totalTime = seconds;
             gameActive = true;
+            countdownPaused = false;
             updateCountdownUI();
 
             countdownInterval = setInterval(() => {
@@ -641,9 +642,43 @@
             setTimeout(() => card.classList.remove('selected'), 200);
         }
 
+        // 隐藏功能：连续10次点+号暂停/恢复倒计时
+        let plusClickTimes = [];
+        let countdownPaused = false;
+
         function appendOp(op) {
             if (!gameActive) return;
             setExpr(getExpr() + op);
+
+            // 隐藏检测：连续10次点+号（间隔<800ms）
+            if (op === '+') {
+                const now = Date.now();
+                plusClickTimes.push(now);
+                // 只保留最近10次
+                if (plusClickTimes.length > 10) plusClickTimes.shift();
+                // 检查最近10次是否都在800ms内
+                if (plusClickTimes.length === 10 && (now - plusClickTimes[0] < 8000)) {
+                    plusClickTimes = [];
+                    toggleCountdownPause();
+                }
+            } else {
+                plusClickTimes = [];
+            }
+        }
+
+        function toggleCountdownPause() {
+            if (countdownPaused) {
+                // 恢复
+                countdownPaused = false;
+                const config = getLevelConfig();
+                startCountdown(timeRemaining);
+                setMessage('info', '倒计时已恢复');
+            } else {
+                // 暂停
+                countdownPaused = true;
+                stopCountdown();
+                setMessage('info', '');
+            }
         }
 
         function backspace() {
