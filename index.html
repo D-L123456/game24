@@ -289,10 +289,12 @@
         .mode-select {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 50%, #0c0c1d 100%);
-            z-index: 300; display: flex; justify-content: center; align-items: center;
+            z-index: 300; display: flex; justify-content: center; align-items: flex-start;
+            padding: 20px 0; overflow-y: auto;
         }
         .mode-box {
             text-align: center; max-width: 400px; width: 90vw;
+            margin: auto 0; padding: 20px 0;
         }
         .mode-title {
             font-size: 48px; font-weight: 900; margin-bottom: 8px;
@@ -371,11 +373,23 @@
                     <div class="mode-btn-label">我是菜鸟</div>
                     <div class="mode-btn-desc">60s → 40s 轻松模式</div>
                 </div>
-                <div class="mode-btn mode-btn-daily" onclick="startDailyChallenge()" style="flex:0 0 100%;max-width:340px;margin:8px auto 0">
+            </div>
+            <div class="mode-buttons" style="margin-top:12px">
+                <div class="mode-btn mode-btn-daily" onclick="startDailyChallenge()" style="width:100%;max-width:340px">
                     <div class="mode-btn-icon">📅</div>
                     <div class="mode-btn-label">每日挑战 <span class="daily-badge">NEW</span></div>
                     <div class="mode-btn-desc">每天5道固定题，和好友比谁更快</div>
                     <div class="daily-done" id="dailyStatus"></div>
+                </div>
+            </div>
+            <!-- 首页排行榜 -->
+            <div id="homeRank" style="margin-top:20px;text-align:left">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <span style="color:rgba(255,215,0,0.6);font-size:13px;letter-spacing:2px">— 极限挑战排行 —</span>
+                    <span style="color:rgba(255,215,0,0.3);font-size:11px;cursor:pointer" onclick="showLeaderboard()">查看全部</span>
+                </div>
+                <div id="homeRankList" style="background:rgba(255,215,0,0.03);border:1px solid rgba(255,215,0,0.1);border-radius:12px;padding:10px 12px;min-height:60px">
+                    <div style="color:rgba(255,215,0,0.3);text-align:center;font-size:12px;padding:16px 0">加载中...</div>
                 </div>
             </div>
         </div>
@@ -1374,6 +1388,32 @@
             } catch (e) {}
         }
 
+        // 首页排行榜预览
+        async function loadHomeRank() {
+            const listEl = document.getElementById('homeRankList');
+            if (!listEl) return;
+            try {
+                const resp = await fetch(`${LB_API}/rank?game=game24&mode=extreme&limit=5`);
+                const data = await resp.json();
+                if (!data.length) {
+                    listEl.innerHTML = `<div style="color:rgba(255,215,0,0.3);text-align:center;font-size:12px;padding:16px 0">暂无记录，快来第一个上榜！</div>`;
+                    return;
+                }
+                let html = '';
+                data.forEach((entry, i) => {
+                    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:rgba(255,215,0,0.3)">${i+1}</span>`;
+                    html += `<div style="display:flex;align-items:center;padding:5px 0;${i>0?'border-top:1px solid rgba(255,215,0,0.06)':''}">`;
+                    html += `<span style="width:24px;text-align:center;font-size:14px">${medal}</span>`;
+                    html += `<span style="flex:1;color:#e0e0e0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:6px">${entry.name}</span>`;
+                    html += `<span style="color:#ffd700;font-weight:700;font-size:13px;margin-left:8px">${entry.score}题</span>`;
+                    html += `</div>`;
+                });
+                listEl.innerHTML = html;
+            } catch (e) {
+                listEl.innerHTML = `<div style="color:rgba(255,215,0,0.2);text-align:center;font-size:12px;padding:16px 0">排行榜加载中...</div>`;
+            }
+        }
+
         // ========== 背景粒子 ==========
         function createParticles() {
             const container = document.getElementById('particles');
@@ -1393,6 +1433,7 @@
         createParticles();
         updateStats();
         updateDailyStatus();
+        loadHomeRank();
         // 注册Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});
