@@ -905,6 +905,9 @@
             html += `<button class="overlay-btn overlay-btn-primary" onclick="startExtremeMode()">再来一次</button>`;
             html += `<button class="overlay-btn overlay-btn-secondary" onclick="restartGame()">返回关卡</button>`;
             html += `</div>`;
+            html += `<div style="margin-top: 10px">`;
+            html += `<button class="overlay-btn overlay-btn-secondary" onclick="shareCard('extreme',${extremeSolved})">分享成绩</button>`;
+            html += `</div>`;
             showOverlay(html);
         }
 
@@ -981,7 +984,103 @@
             html += `<button class="overlay-btn overlay-btn-primary" onclick="startExtremeMode()">极限挑战</button>`;
             html += `<button class="overlay-btn overlay-btn-secondary" onclick="restartGame()">重新开始</button>`;
             html += `</div>`;
+            html += `<div style="margin-top: 10px">`;
+            html += `<button class="overlay-btn overlay-btn-secondary" onclick="shareCard('certificate',${score})">分享证书</button>`;
+            html += `</div>`;
             showOverlay(html);
+        }
+
+        // ========== 分享卡片 ==========
+        function shareCard(type, value) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 600; canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+
+            // 背景渐变
+            const grad = ctx.createLinearGradient(0, 0, 600, 400);
+            grad.addColorStop(0, '#0c0c1d');
+            grad.addColorStop(0.5, '#1a1a3e');
+            grad.addColorStop(1, '#0c0c1d');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 600, 400);
+
+            // 装饰光晕
+            const glow = ctx.createRadialGradient(300, 200, 0, 300, 200, 250);
+            glow.addColorStop(0, 'rgba(255,215,0,0.08)');
+            glow.addColorStop(1, 'transparent');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, 600, 400);
+
+            // 边框
+            ctx.strokeStyle = 'rgba(255,215,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.roundRect(20, 20, 560, 360, 16);
+            ctx.stroke();
+
+            // 标题
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 42px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('24 点', 300, 90);
+
+            // 副标题
+            ctx.fillStyle = 'rgba(255,215,0,0.5)';
+            ctx.font = '14px sans-serif';
+            ctx.fillText('GAME OF TWENTY-FOUR', 300, 115);
+
+            if (type === 'certificate') {
+                const isPro = gameMode === 'pro';
+                const certText = isPro ? '你可真是个天才' : '也不算太菜';
+                const modeLabel = isPro ? '高手模式' : '菜鸟模式';
+
+                // 证书框
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 2;
+                ctx.roundRect(60, 140, 480, 140, 12);
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(255,215,0,0.4)';
+                ctx.font = '13px sans-serif';
+                ctx.fillText('— 通关证书 —', 300, 170);
+
+                ctx.fillStyle = '#ffd700';
+                ctx.font = 'bold 32px sans-serif';
+                ctx.fillText(certText, 300, 220);
+
+                ctx.fillStyle = 'rgba(255,215,0,0.4)';
+                ctx.font = '13px sans-serif';
+                ctx.fillText(`${modeLabel} · 总分 ${value}`, 300, 260);
+            } else {
+                // 极限挑战
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = '18px sans-serif';
+                ctx.fillText('极限挑战 · 100秒', 300, 170);
+
+                ctx.fillStyle = '#ffd700';
+                ctx.font = 'bold 64px sans-serif';
+                ctx.fillText(String(value), 300, 250);
+
+                ctx.fillStyle = 'rgba(255,215,0,0.5)';
+                ctx.font = '16px sans-serif';
+                ctx.fillText('题', 300 + ctx.measureText(String(value)).width/2 + 16, 240);
+            }
+
+            // 底部
+            ctx.fillStyle = 'rgba(255,215,0,0.3)';
+            ctx.font = '13px sans-serif';
+            ctx.fillText('长按保存图片，分享给好友挑战', 300, 340);
+
+            ctx.fillStyle = 'rgba(255,215,0,0.2)';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('d-l123456.github.io/game24/', 300, 365);
+
+            // 显示分享图
+            const dataUrl = canvas.toDataURL('image/png');
+            let shareHtml = `<div class="overlay-title">分享成绩</div>`;
+            shareHtml += `<div class="overlay-text">长按图片保存，发到朋友圈挑战好友</div>`;
+            shareHtml += `<img src="${dataUrl}" style="width:100%;border-radius:12px;margin:12px 0;border:1px solid rgba(255,215,0,0.2);">`;
+            shareHtml += `<button class="overlay-btn overlay-btn-primary" onclick="hideOverlay()">关闭</button>`;
+            showOverlay(shareHtml);
         }
 
         // ========== 背景粒子 ==========
