@@ -320,6 +320,19 @@
         .mode-btn-pro .mode-btn-desc { color: rgba(255,215,0,0.6); }
         .mode-btn-noob .mode-btn-label { color: #64c8ff; }
         .mode-btn-noob .mode-btn-desc { color: rgba(100,200,255,0.6); }
+        .mode-btn-daily {
+            background: linear-gradient(145deg, rgba(255,100,255,0.12), rgba(200,50,255,0.08));
+            border-color: rgba(255,100,255,0.3);
+        }
+        .mode-btn-daily:hover { box-shadow: 0 8px 30px rgba(255,100,255,0.15); border-color: rgba(255,100,255,0.6); }
+        .mode-btn-daily .mode-btn-label { color: #ff64ff; }
+        .mode-btn-daily .mode-btn-desc { color: rgba(255,100,255,0.6); }
+        .daily-badge {
+            display: inline-block; background: linear-gradient(135deg, #ff64ff, #c832ff);
+            color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 8px;
+            margin-left: 4px; vertical-align: middle;
+        }
+        .daily-done { color: #64ff96; font-size: 12px; margin-top: 4px; }
 
         /* 证书 */
         .certificate {
@@ -352,6 +365,12 @@
                     <div class="mode-btn-icon">🐣</div>
                     <div class="mode-btn-label">我是菜鸟</div>
                     <div class="mode-btn-desc">60s → 40s 轻松模式</div>
+                </div>
+                <div class="mode-btn mode-btn-daily" onclick="startDailyChallenge()" style="width:100%;max-width:340px;margin-top:8px">
+                    <div class="mode-btn-icon">📅</div>
+                    <div class="mode-btn-label">每日挑战 <span class="daily-badge">NEW</span></div>
+                    <div class="mode-btn-desc">每天5道固定题，和好友比谁更快</div>
+                    <div class="daily-done" id="dailyStatus"></div>
                 </div>
             </div>
         </div>
@@ -664,6 +683,8 @@
             gameActive = false;
             if (isExtremeMode) {
                 endExtremeMode();
+            } else if (isDailyMode) {
+                dailyTimeUp();
             } else {
                 showTimeUpOverlay();
             }
@@ -800,7 +821,10 @@
                 // 自动下一题
                 setTimeout(() => {
                     if (!gameActive) return;
-                    if (isExtremeMode) {
+                    if (isDailyMode) {
+                        dailySolvedCount++;
+                        dailyNextPuzzle();
+                    } else if (isExtremeMode) {
                         generatePuzzle();
                     } else {
                         // 过关
@@ -834,6 +858,11 @@
 
         function skipPuzzle() {
             if (!gameActive) return;
+            if (isDailyMode) {
+                streak = 0;
+                dailyNextPuzzle();
+                return;
+            }
             if (!isExtremeMode) {
                 // 关卡模式跳过算失败
                 streak = 0;
@@ -866,9 +895,11 @@
             score = 0; streak = 0; solved = 0;
             levelsCompleted = 0; currentLevel = 0;
             extremeUnlocked = false; isExtremeMode = false;
+            isDailyMode = false;
             document.getElementById('gameContainer').classList.remove('extreme-mode');
             document.getElementById('gameContainer').style.display = 'none';
             document.getElementById('modeSelect').style.display = 'flex';
+            updateDailyStatus();
         }
 
         // ========== 极限挑战模式 ==========
@@ -1050,6 +1081,27 @@
                 ctx.fillStyle = 'rgba(255,215,0,0.4)';
                 ctx.font = '13px sans-serif';
                 ctx.fillText(`${modeLabel} · 总分 ${value}`, 300, 260);
+            } else if (type === 'daily') {
+                // 每日挑战
+                const d = new Date();
+                const dateStr = `${d.getMonth()+1}月${d.getDate()}日`;
+
+                ctx.strokeStyle = '#ff64ff';
+                ctx.lineWidth = 2;
+                ctx.roundRect(60, 140, 480, 140, 12);
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(255,100,255,0.4)';
+                ctx.font = '13px sans-serif';
+                ctx.fillText('— 每日挑战 —', 300, 170);
+
+                ctx.fillStyle = '#ff64ff';
+                ctx.font = 'bold 32px sans-serif';
+                ctx.fillText(`${dateStr} · ${value}秒`, 300, 220);
+
+                ctx.fillStyle = 'rgba(255,100,255,0.4)';
+                ctx.font = '13px sans-serif';
+                ctx.fillText(`解出 ${dailySolvedCount}/5 题`, 300, 260);
             } else {
                 // 极限挑战
                 ctx.fillStyle = '#e0e0e0';
@@ -1083,6 +1135,152 @@
             showOverlay(shareHtml);
         }
 
+        // ========== 每日挑战 ==========
+        let isDailyMode = false;
+        let dailyPuzzles = [];      // 5道固定题
+        let dailyIndex = 0;         // 当前第几题(0-4)
+        let dailyStartTime = 0;     // 开始时间戳
+        let dailySolvedCount = 0;   // 已解出几题
+
+        // 用日期做种子的伪随机
+        function seededRandom(seed) {
+            let s = seed;
+            return function() {
+                s = (s * 9301 + 49297) % 233280;
+                return s / 233280;
+            };
+        }
+
+        function getTodaySeed() {
+            const d = new Date();
+            return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+        }
+
+        function generateDailyPuzzles() {
+            const rng = seededRandom(getTodaySeed());
+            const puzzles = [];
+            for (let i = 0; i < 5; i++) {
+                let nums;
+                do {
+                    nums = Array.from({ length: 4 }, () => Math.floor(rng() * 13) + 1);
+                } while (!canSolve(nums));
+                puzzles.push(nums);
+            }
+            return puzzles;
+        }
+
+        function getDailyKey() { return 'game24_daily_' + getTodaySeed(); }
+
+        function getDailyRecord() {
+            try { return JSON.parse(localStorage.getItem(getDailyKey())); } catch { return null; }
+        }
+
+        function saveDailyRecord(time, solved) {
+            const prev = getDailyRecord();
+            if (!prev || time < prev.time) {
+                localStorage.setItem(getDailyKey(), JSON.stringify({ time, solved, date: getTodaySeed() }));
+            }
+        }
+
+        function updateDailyStatus() {
+            const el = document.getElementById('dailyStatus');
+            if (!el) return;
+            const rec = getDailyRecord();
+            if (rec) {
+                el.textContent = `今日最佳：${rec.time}秒（解出${rec.solved}/5题）`;
+            } else {
+                el.textContent = '';
+            }
+        }
+
+        function startDailyChallenge() {
+            isDailyMode = true;
+            isExtremeMode = false;
+            dailyPuzzles = generateDailyPuzzles();
+            dailyIndex = 0;
+            dailySolvedCount = 0;
+            dailyStartTime = Date.now();
+            score = 0; streak = 0; solved = 0;
+            levelsCompleted = 0; currentLevel = 0;
+            extremeUnlocked = false;
+
+            document.getElementById('modeSelect').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('gameContainer').classList.remove('extreme-mode');
+
+            // 加载今日固定题目
+            currentNums = [...dailyPuzzles[0]];
+            hintUsed = false;
+            clearExpr();
+            renderCards();
+
+            // 显示每日挑战UI
+            document.getElementById('levelName').textContent = '每日挑战 1/5';
+            renderDailyProgress();
+            startCountdown(60);
+            updateStats();
+            document.getElementById('btnExtreme').disabled = true;
+            setMessage('info', '每日挑战！60秒内算出24');
+        }
+
+        function renderDailyProgress() {
+            const container = document.getElementById('levelProgress');
+            container.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'level-dot';
+                if (i < dailySolvedCount) dot.classList.add('completed');
+                else if (i === dailyIndex) dot.classList.add('current');
+                else dot.classList.add('locked');
+                container.appendChild(dot);
+            }
+        }
+
+        function dailyNextPuzzle() {
+            dailyIndex++;
+            if (dailyIndex >= 5) {
+                // 全部完成
+                const elapsed = Math.round((Date.now() - dailyStartTime) / 1000);
+                saveDailyRecord(elapsed, dailySolvedCount);
+                endDailyChallenge(elapsed);
+                return;
+            }
+            currentNums = [...dailyPuzzles[dailyIndex]];
+            hintUsed = false;
+            clearExpr();
+            renderCards();
+            document.getElementById('levelName').textContent = `每日挑战 ${dailyIndex + 1}/5`;
+            renderDailyProgress();
+            startCountdown(60);
+            setMessage('info', `第${dailyIndex + 1}题 — 60秒内算出24`);
+        }
+
+        function endDailyChallenge(elapsed) {
+            gameActive = false;
+            stopCountdown();
+            isDailyMode = false;
+            const rec = getDailyRecord();
+
+            let html = `<div class="overlay-title">每日挑战完成</div>`;
+            html += `<div class="overlay-text">解出 ${dailySolvedCount}/5 题</div>`;
+            html += `<div class="overlay-highlight">${elapsed} 秒</div>`;
+            if (rec && rec.time === elapsed) html += `<div class="overlay-text" style="color:#64ff96">今日最佳！</div>`;
+            html += `<div style="margin-top: 20px">`;
+            html += `<button class="overlay-btn overlay-btn-primary" onclick="startDailyChallenge()">再来一次</button>`;
+            html += `<button class="overlay-btn overlay-btn-secondary" onclick="restartGame()">返回首页</button>`;
+            html += `</div>`;
+            html += `<div style="margin-top: 10px">`;
+            html += `<button class="overlay-btn overlay-btn-secondary" onclick="shareCard('daily',${elapsed})">分享成绩</button>`;
+            html += `</div>`;
+            showOverlay(html);
+        }
+
+        function dailyTimeUp() {
+            // 超时跳到下一题
+            streak = 0;
+            dailyNextPuzzle();
+        }
+
         // ========== 背景粒子 ==========
         function createParticles() {
             const container = document.getElementById('particles');
@@ -1101,6 +1299,7 @@
         // ========== 初始化 ==========
         createParticles();
         updateStats();
+        updateDailyStatus();
         // 注册Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});
