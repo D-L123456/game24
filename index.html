@@ -273,12 +273,87 @@
             .card-number { font-size: 28px; }
             .game-title { font-size: 28px; }
         }
+
+        /* 模式选择 */
+        .mode-select {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 50%, #0c0c1d 100%);
+            z-index: 300; display: flex; justify-content: center; align-items: center;
+        }
+        .mode-box {
+            text-align: center; max-width: 400px; width: 90vw;
+        }
+        .mode-title {
+            font-size: 48px; font-weight: 900; margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffd700, #ff8c00, #ffd700);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            letter-spacing: 6px;
+        }
+        .mode-subtitle { font-size: 14px; color: rgba(255,215,0,0.4); margin-bottom: 40px; letter-spacing: 3px; }
+        .mode-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .mode-btn {
+            width: 160px; padding: 20px 16px; border-radius: 16px; cursor: pointer;
+            transition: all 0.3s; text-align: center; border: 2px solid;
+        }
+        .mode-btn:hover { transform: translateY(-4px); }
+        .mode-btn:active { transform: translateY(-1px); }
+        .mode-btn-pro {
+            background: linear-gradient(145deg, rgba(255,215,0,0.15), rgba(255,140,0,0.1));
+            border-color: rgba(255,215,0,0.4);
+        }
+        .mode-btn-pro:hover { box-shadow: 0 8px 30px rgba(255,215,0,0.2); border-color: rgba(255,215,0,0.7); }
+        .mode-btn-noob {
+            background: linear-gradient(145deg, rgba(100,200,255,0.12), rgba(100,150,255,0.08));
+            border-color: rgba(100,200,255,0.3);
+        }
+        .mode-btn-noob:hover { box-shadow: 0 8px 30px rgba(100,200,255,0.15); border-color: rgba(100,200,255,0.6); }
+        .mode-btn-icon { font-size: 36px; margin-bottom: 8px; }
+        .mode-btn-label { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .mode-btn-desc { font-size: 12px; opacity: 0.5; }
+        .mode-btn-pro .mode-btn-label { color: #ffd700; }
+        .mode-btn-pro .mode-btn-desc { color: rgba(255,215,0,0.6); }
+        .mode-btn-noob .mode-btn-label { color: #64c8ff; }
+        .mode-btn-noob .mode-btn-desc { color: rgba(100,200,255,0.6); }
+
+        /* 证书 */
+        .certificate {
+            background: linear-gradient(45deg, #2a1a0a, #1a1005);
+            border: 3px solid #ffd700; border-radius: 16px; padding: 30px 24px;
+            margin: 16px 0; position: relative; overflow: hidden;
+        }
+        .certificate::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(255,215,0,0.05), transparent 70%);
+        }
+        .cert-title { font-size: 14px; color: rgba(255,215,0,0.5); letter-spacing: 4px; margin-bottom: 12px; }
+        .cert-text { font-size: 28px; font-weight: 900; color: #ffd700; margin: 12px 0; position: relative; }
+        .cert-sub { font-size: 13px; color: rgba(255,215,0,0.4); margin-top: 8px; }
     </style>
 </head>
 <body>
+    <!-- 模式选择 -->
+    <div class="mode-select" id="modeSelect">
+        <div class="mode-box">
+            <div class="mode-title">24 点</div>
+            <div class="mode-subtitle">选择你的挑战</div>
+            <div class="mode-buttons">
+                <div class="mode-btn mode-btn-pro" onclick="selectMode('pro')">
+                    <div class="mode-btn-icon">🏆</div>
+                    <div class="mode-btn-label">我是高手</div>
+                    <div class="mode-btn-desc">30s → 10s 极限通关</div>
+                </div>
+                <div class="mode-btn mode-btn-noob" onclick="selectMode('noob')">
+                    <div class="mode-btn-icon">🐣</div>
+                    <div class="mode-btn-label">我是菜鸟</div>
+                    <div class="mode-btn-desc">60s → 40s 轻松模式</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="particles" id="particles"></div>
 
-    <div class="game-container" id="gameContainer">
+    <div class="game-container" id="gameContainer" style="display:none">
         <div class="game-title">24 点</div>
         <div class="game-subtitle">GAME OF TWENTY-FOUR</div>
 
@@ -473,13 +548,22 @@
         let gameActive = true;
 
         // 关卡系统
-        const LEVELS = [
+        const LEVELS_PRO = [
             { name: '第 1 关', time: 30 },
             { name: '第 2 关', time: 25 },
             { name: '第 3 关', time: 20 },
             { name: '第 4 关', time: 15 },
             { name: '第 5 关', time: 10 },
         ];
+        const LEVELS_NOOB = [
+            { name: '第 1 关', time: 60 },
+            { name: '第 2 关', time: 55 },
+            { name: '第 3 关', time: 50 },
+            { name: '第 4 关', time: 45 },
+            { name: '第 5 关', time: 40 },
+        ];
+        let LEVELS = LEVELS_PRO;
+        let gameMode = 'pro'; // 'pro' or 'noob'
         const EXTREME_TIME = 100;
         let currentLevel = 0;       // 0-4 for normal levels, -1 for extreme
         let levelsCompleted = 0;     // how many levels completed (0-5)
@@ -723,6 +807,9 @@
                             if (levelsCompleted >= LEVELS.length) {
                                 extremeUnlocked = true;
                                 updateExtremeButton();
+                                // 全部通关，显示证书
+                                showCertificate();
+                                return;
                             }
                             // 进入下一关
                             currentLevel = Math.min(levelsCompleted, LEVELS.length - 1);
@@ -774,7 +861,8 @@
             levelsCompleted = 0; currentLevel = 0;
             extremeUnlocked = false; isExtremeMode = false;
             document.getElementById('gameContainer').classList.remove('extreme-mode');
-            newGame();
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('modeSelect').style.display = 'flex';
         }
 
         // ========== 极限挑战模式 ==========
@@ -860,6 +948,36 @@
             if (overlay) overlay.style.display = 'none';
         }
 
+        // ========== 模式选择与证书 ==========
+        function selectMode(mode) {
+            gameMode = mode;
+            LEVELS = mode === 'pro' ? LEVELS_PRO : LEVELS_NOOB;
+            document.getElementById('modeSelect').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            newGame();
+        }
+
+        function showCertificate() {
+            stopCountdown();
+            gameActive = false;
+            const isPro = gameMode === 'pro';
+            const certText = isPro ? '你可真是个天才' : '也不算太菜';
+            const modeLabel = isPro ? '高手模式' : '菜鸟模式';
+
+            let html = `<div class="overlay-title">全部通关！</div>`;
+            html += `<div class="overlay-text">${modeLabel} · 5关全通</div>`;
+            html += `<div class="certificate">`;
+            html += `<div class="cert-title">— 通关证书 —</div>`;
+            html += `<div class="cert-text">${certText}</div>`;
+            html += `<div class="cert-sub">24点游戏 · ${modeLabel} · 总分 ${score}</div>`;
+            html += `</div>`;
+            html += `<div style="margin-top: 16px">`;
+            html += `<button class="overlay-btn overlay-btn-primary" onclick="startExtremeMode()">极限挑战</button>`;
+            html += `<button class="overlay-btn overlay-btn-secondary" onclick="restartGame()">重新开始</button>`;
+            html += `</div>`;
+            showOverlay(html);
+        }
+
         // ========== 背景粒子 ==========
         function createParticles() {
             const container = document.getElementById('particles');
@@ -878,7 +996,6 @@
         // ========== 初始化 ==========
         createParticles();
         updateStats();
-        newGame();
     </script>
 </body>
 </html>
