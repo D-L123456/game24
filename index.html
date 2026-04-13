@@ -398,7 +398,10 @@
     <div class="particles" id="particles"></div>
 
     <div class="game-container" id="gameContainer" style="display:none">
-        <div class="game-title">24 点</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="game-title">24 点</div>
+            <button onclick="restartGame()" style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:4px 12px;color:rgba(255,215,0,0.6);font-size:12px;cursor:pointer">首页</button>
+        </div>
         <div class="game-subtitle">GAME OF TWENTY-FOUR</div>
 
         <!-- 关卡信息栏 -->
@@ -946,8 +949,6 @@
                 localStorage.setItem('game24_best', String(bestExtremeScore));
             }
             updateStats();
-            // 自动提交排行榜
-            if (extremeSolved > 0) submitToLeaderboard('extreme', extremeSolved);
 
             let html = `<div class="overlay-title">极限挑战结束</div>`;
             html += `<div class="overlay-text">100秒内解题数</div>`;
@@ -956,8 +957,13 @@
             html += `<div class="overlay-best">历史最高：${bestExtremeScore}</div>`;
             html += `<div style="margin-top: 20px">`;
             html += `<button class="overlay-btn overlay-btn-primary" onclick="startExtremeMode()">再来一次</button>`;
-            html += `<button class="overlay-btn overlay-btn-secondary" onclick="restartGame()">返回关卡</button>`;
+            html += `<button class="overlay-btn overlay-btn-secondary" onclick="restartGame()">返回首页</button>`;
             html += `</div>`;
+            if (extremeSolved > 0) {
+                html += `<div style="margin-top: 10px">`;
+                html += `<button class="overlay-btn overlay-btn-secondary" onclick="submitToLeaderboard('extreme',${extremeSolved})">提交排行榜</button>`;
+                html += `</div>`;
+            }
             html += `<div style="margin-top: 10px">`;
             html += `<button class="overlay-btn overlay-btn-secondary" onclick="shareCard('extreme',${extremeSolved})">分享成绩</button>`;
             html += `</div>`;
@@ -1282,8 +1288,6 @@
             stopCountdown();
             isDailyMode = false;
             const rec = getDailyRecord();
-            // 自动提交排行榜（每日挑战按用时排名，越少越好，取负数排序）
-            if (dailySolvedCount > 0) submitToLeaderboard('daily', -elapsed);
 
             let html = `<div class="overlay-title">每日挑战完成</div>`;
             html += `<div class="overlay-text">解出 ${dailySolvedCount}/5 题</div>`;
@@ -1293,6 +1297,11 @@
             html += `<button class="overlay-btn overlay-btn-primary" onclick="startDailyChallenge()">再来一次</button>`;
             html += `<button class="overlay-btn overlay-btn-secondary" onclick="restartGame()">返回首页</button>`;
             html += `</div>`;
+            if (dailySolvedCount > 0) {
+                html += `<div style="margin-top: 10px">`;
+                html += `<button class="overlay-btn overlay-btn-secondary" onclick="submitToLeaderboard('daily',${-elapsed})">提交排行榜</button>`;
+                html += `</div>`;
+            }
             html += `<div style="margin-top: 10px">`;
             html += `<button class="overlay-btn overlay-btn-secondary" onclick="shareCard('daily',${elapsed})">分享成绩</button>`;
             html += `</div>`;
