@@ -1374,18 +1374,52 @@
 
         async function submitToLeaderboard(mode, score) {
             if (!lbName) {
-                lbName = prompt('请输入昵称（2-20字）') || '';
-                if (!lbName) return;
-                lbName = lbName.slice(0, 20);
-                localStorage.setItem('game24_lb_name', lbName);
+                lbName = localStorage.getItem('game24_lb_name') || '';
             }
+            if (!lbName) {
+                // 用overlay弹窗输入昵称，不用prompt（手机端prompt会被拦截）
+                showNameInput(mode, score);
+                return;
+            }
+            try {
+                const resp = await fetch(`${LB_API}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game: 'game24', mode, name: lbName, score })
+                });
+                if (!resp.ok) console.warn('LB submit failed:', resp.status);
+            } catch (e) {
+                console.warn('LB submit error:', e.message);
+            }
+        }
+
+        function showNameInput(mode, score) {
+            let html = `<div class="overlay-title">上榜啦！</div>`;
+            html += `<div class="overlay-text">输入昵称，登上全球排行榜</div>`;
+            html += `<div style="margin:16px 0;display:flex;gap:8px;align-items:center;justify-content:center">`;
+            html += `<input id="lbNameOverlay" maxlength="20" placeholder="你的昵称" style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:8px;padding:8px 14px;color:#ffd700;font-size:16px;width:160px;outline:none;text-align:center">`;
+            html += `</div>`;
+            html += `<button class="overlay-btn overlay-btn-primary" onclick="confirmNameAndSubmit('${mode}',${score})">确认提交</button>`;
+            html += `<button class="overlay-btn overlay-btn-secondary" onclick="hideOverlay()" style="margin-top:8px">跳过</button>`;
+            showOverlay(html);
+            setTimeout(() => { const inp = document.getElementById('lbNameOverlay'); if(inp) inp.focus(); }, 100);
+        }
+
+        async function confirmNameAndSubmit(mode, score) {
+            const inp = document.getElementById('lbNameOverlay');
+            lbName = (inp ? inp.value.trim() : '') || '匿名玩家';
+            lbName = lbName.slice(0, 20);
+            localStorage.setItem('game24_lb_name', lbName);
+            hideOverlay();
             try {
                 await fetch(`${LB_API}/submit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ game: 'game24', mode, name: lbName, score })
                 });
-            } catch (e) {}
+            } catch (e) {
+                console.warn('LB submit error:', e.message);
+            }
         }
 
         // 首页排行榜预览
